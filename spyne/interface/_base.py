@@ -236,7 +236,11 @@ class Interface(object):
     def process_method(self, s, method):
         assert isinstance(method, MethodDescriptor)
 
-        method_key = '{%s}%s' % (self.app.tns, method.name)
+        in_message_ns = method.in_message.get_namespace()
+        if self.app.multi_ns and isinstance(in_message_ns, (str, unicode)):
+            method_key = '{%s}%s' % (in_message_ns, method.name)
+        else:
+            method_key = '{%s}%s' % (self.app.tns, method.name)
 
         if issubclass(s, ComplexModelBase) and method.in_message_name_override:
             method_key = '{%s}%s.%s' % (self.app.tns,
@@ -246,8 +250,10 @@ class Interface(object):
             c = self.method_id_map[key].parent_class
             if c is None:
                 pass
+
             elif c is s:
                 pass
+
             elif c.__orig__ is None:
                 assert c is s.__orig__, "%r.%s conflicts with %r.%s" % \
                                         (c, key, s.__orig__, key)
