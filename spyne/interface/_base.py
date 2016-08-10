@@ -237,7 +237,7 @@ class Interface(object):
         assert isinstance(method, MethodDescriptor)
 
         in_message_ns = method.in_message.get_namespace()
-        if self.app.multi_ns and isinstance(in_message_ns, (str, unicode)):
+        if method.in_message.use_method_ns and isinstance(in_message_ns, (str, unicode)):
             method_key = '{%s}%s' % (in_message_ns, method.name)
         else:
             method_key = '{%s}%s' % (self.app.tns, method.name)

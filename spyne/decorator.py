@@ -85,7 +85,9 @@ def _produce_input_message(f, params, in_message_name,
         in_params[k] = v
 
     ns = spyne.const.xml_ns.DEFAULT_NS
+    use_method_ns = False
     if in_message_name.startswith("{"):
+        use_method_ns = True
         ns, _, in_message_name = in_message_name[1:].partition("}")
 
     message = None
@@ -115,6 +117,8 @@ def _produce_input_message(f, params, in_message_name,
         message = ComplexModel.produce(type_name=in_message_name,
                                        namespace=ns, members=in_params)
         message.__namespace__ = ns
+
+     message.use_method_ns = use_method_ns
 
     return message
 
@@ -176,7 +180,7 @@ def _produce_output_message(func_name, body_style_str, kparams):
 
     ns = spyne.const.xml_ns.DEFAULT_NS
     if _out_message_name.startswith("{"):
-        ns = _out_message_name[1:].partition("}")[0]
+        ns, _, _out_message_name = _out_message_name[1:].partition("}")
 
     if body_style_str.endswith('bare') and _returns is not None:
         message = _returns.customize(sub_name=_out_message_name, sub_ns=ns)

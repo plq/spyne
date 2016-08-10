@@ -89,12 +89,11 @@ class Application(object):
     transport = None
 
     def __init__(self, services, tns, name=None,
-              in_protocol=None, out_protocol=None, config=None, multi_ns=False):
+              in_protocol=None, out_protocol=None, config=None):
         self.services = tuple(services)
         self.tns = tns
         self.name = name
         self.config = config
-        self.multi_ns = multi_ns
 
         if self.name is None:
             self.name = self.__class__.__name__.split('.')[-1]
