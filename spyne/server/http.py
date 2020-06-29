@@ -19,6 +19,8 @@
 
 from collections import defaultdict
 
+from spyne.util import six
+
 from email import utils
 from email.utils import encode_rfc2231
 from email.message import tspecials
@@ -279,7 +281,11 @@ class HttpBase(ServerBase):
             assert isinstance(patt, HttpPattern)
 
             if patt.verb is not None:
-                match = patt.verb_re.match(method)
+                if six.PY2:
+                    match = patt.verb_re.match(method)
+                else:
+                    match = patt.verb_re_b.match(method)
+
                 if match is None:
                     continue
                 if not (match.span() == (0, len(method))):

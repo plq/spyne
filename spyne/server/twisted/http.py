@@ -86,7 +86,8 @@ from spyne.server.twisted import log_and_let_go
 
 from spyne.util.address import address_parser
 from spyne.util.six import text_type, string_types
-from spyne.util.six.moves.urllib.parse import unquote
+from spyne.util.six.moves.urllib.parse import quote, unquote
+
 
 if not six.PY2:
     from urllib.request import unquote_to_bytes
@@ -169,7 +170,7 @@ class _Transformer(object):
 
     def get(self, key, default):
         key = key.lower()
-        if key.startswith((b'http_', b'http-')):
+        if key.startswith(('http_', 'http-')):
             key = key[5:]
 
         retval = self.req.getHeader(key)
@@ -435,7 +436,8 @@ def get_twisted_child_with_default(res, path, request):
     if res.prepath is None:
         request.realprepath = b'/' + b'/'.join(request.prepath)
     else:
-        if not res.prepath.startswith('/'):
+        print(repr(res.prepath))
+        if not res.prepath.startswith(b'/'):
             request.realprepath = b'/' + res.prepath
         else:
             request.realprepath = res.prepath
@@ -468,6 +470,8 @@ class TwistedWebResource(Resource):
                                             max_content_length, block_length)
         self._wsdl = None
         self.prepath = prepath
+        if isinstance(self.prepath, six.text_type):
+            self.prepath = quote(prepath).encode('ascii')
 
     def getChildWithDefault(self, path, request):
         return get_twisted_child_with_default(self, path, request)

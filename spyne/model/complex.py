@@ -778,6 +778,65 @@ class ComplexModelMeta(with_metaclass(Prepareable, type(ModelBase))):
 _is_array = lambda v: issubclass(v, Array) or (v.Attributes.max_occurs > 1)
 
 
+def _Tget_simple_type_info(key_encoder):
+    def get_simple_type_info(cls, hier_delim="."):
+        """Returns a _type_info dict that includes members from all base classes
+        and whose types are only primitives. It will prefix field names in
+        non-top-level complex objects with field name of its parent.
+
+        For example, given hier_delim='_'; the following hierarchy: ::
+
+            {'some_object': [{'some_string': ['abc']}]}
+
+        would be transformed to: ::
+
+            {'some_object_some_string': ['abc']}
+
+        :param hier_delim: String that will be used as delimiter between field
+            names. Default is ``'_'``.
+        """
+
+        fti = cls.get_flat_type_info(cls)
+
+        retval = {}
+        tags = set()
+        queue = deque([(k, v, (k,), (_is_array(v),), cls)
+                       for k, v in fti.items()])
+        tags.add(cls)
+
+        while len(queue) > 0:
+            k, v, prefix, is_array, parent = queue.popleft()
+            if issubclass(v, Array) and v.Attributes.max_occurs == 1:
+                v, = v._type_info.values()
+
+            key = key_encoder(hier_delim.join(prefix))
+            if issubclass(v, ComplexModelBase):
+                retval[key] = _SimpleTypeInfoElement(path=tuple(prefix),
+                    parent=parent, type_=v, is_array=tuple(is_array),
+                    can_be_empty=True)
+
+                if not (v in tags):
+                    tags.add(v)
+                    queue.extend([
+                        (k2, v2, prefix + (k2,),
+                         is_array + (v.Attributes.max_occurs > 1,), v)
+                                 for k2, v2 in v.get_flat_type_info(v).items()])
+            else:
+                value = retval.get(key, None)
+
+                if value is not None:
+                    raise ValueError("%r.%s conflicts with %r" %
+                                     (cls, k, value.path))
+
+                retval[key] = _SimpleTypeInfoElement(path=tuple(prefix),
+                    parent=parent, type_=v, is_array=tuple(is_array),
+                    can_be_empty=False)
+
+        return retval
+
+    return get_simple_type_info
+
+
 class ComplexModelBase(ModelBase):
     """If you want to make a better class type, this is what you should inherit
     from.
@@ -1056,62 +1115,11 @@ class ComplexModelBase(ModelBase):
     def get_orig(cls):
         return cls.__orig__ or cls
 
-    @staticmethod
-    @memoize
-    def get_simple_type_info(cls, hier_delim="."):
-        """Returns a _type_info dict that includes members from all base classes
-        and whose types are only primitives. It will prefix field names in
-        non-top-level complex objects with field name of its parent.
+    get_simple_type_info = staticmethod(memoize(
+                                           _Tget_simple_type_info(lambda s: s)))
 
-        For example, given hier_delim='_'; the following hierarchy: ::
-
-            {'some_object': [{'some_string': ['abc']}]}
-
-        would be transformed to: ::
-
-            {'some_object_some_string': ['abc']}
-
-        :param hier_delim: String that will be used as delimiter between field
-            names. Default is ``'_'``.
-        """
-
-        fti = cls.get_flat_type_info(cls)
-
-        retval = TypeInfo()
-        tags = set()
-        queue = deque([(k, v, (k,), (_is_array(v),), cls)
-                                                        for k,v in fti.items()])
-        tags.add(cls)
-
-        while len(queue) > 0:
-            k, v, prefix, is_array, parent = queue.popleft()
-            if issubclass(v, Array) and v.Attributes.max_occurs == 1:
-                v, = v._type_info.values()
-
-            key = hier_delim.join(prefix)
-            if issubclass(v, ComplexModelBase):
-                retval[key] = _SimpleTypeInfoElement(path=tuple(prefix),
-                               parent=parent, type_=v, is_array=tuple(is_array),
-                                                              can_be_empty=True)
-
-                if not (v in tags):
-                    tags.add(v)
-                    queue.extend([
-                        (k2, v2, prefix + (k2,),
-                            is_array + (v.Attributes.max_occurs > 1,), v)
-                                   for k2, v2 in v.get_flat_type_info(v).items()])
-            else:
-                value = retval.get(key, None)
-
-                if value is not None:
-                    raise ValueError("%r.%s conflicts with %r" %
-                                                       (cls, k, value.path))
-
-                retval[key] = _SimpleTypeInfoElement(path=tuple(prefix),
-                               parent=parent, type_=v, is_array=tuple(is_array),
-                                                             can_be_empty=False)
-
-        return retval
+    get_simple_type_info_ascii = staticmethod(memoize(
+                           _Tget_simple_type_info(lambda s: s.encode('ascii'))))
 
     @staticmethod
     def resolve_namespace(cls, default_ns, tags=None):

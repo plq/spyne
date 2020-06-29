@@ -30,6 +30,8 @@ from collections import deque
 # This is a modified version of twisted's addCookie
 
 
+_MAXINT = 9223372036854775807
+
 def generate_cookie(k, v, max_age=None, domain=None, path=None,
                                        comment=None, secure=False):
     """Generate a HTTP response cookie. No sanity check whatsoever is done,
@@ -48,7 +50,7 @@ def generate_cookie(k, v, max_age=None, domain=None, path=None,
 
     if max_age is not None:
         retval.append("Max-Age=%d" % max_age)
-        assert time.time() < sys.maxint
+        assert time.time() < _MAXINT
 
         expires = time.time() + max_age
         expires = min(2<<30, expires) - 1  # FIXME

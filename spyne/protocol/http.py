@@ -452,6 +452,10 @@ class HttpPattern(object):
     def verb(self, what):
         self.__verb = what
         self.verb_re = self._compile_verb_pattern(what)
+        if self.verb_re is None:
+            self.verb_re_b = None
+        else:
+            self.verb_re_b = re.compile(self.verb_re.pattern.encode('ascii'))
 
     def as_werkzeug_rule(self):
         from werkzeug.routing import Rule

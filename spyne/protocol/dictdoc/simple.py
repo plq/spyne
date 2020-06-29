@@ -21,7 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import re
-RE_HTTP_ARRAY_INDEX = re.compile("\\[([0-9]+)\\]")
+RE_HTTP_ARRAY_INDEX = re.compile(b"\\[([0-9]+)\\]")
 
 from collections import deque
 from collections import defaultdict
@@ -171,14 +171,14 @@ class SimpleDictDocument(DictDocument):
             retval = cls.get_serialization_instance([])
         else:
             retval = cls.get_deserialization_instance(ctx)
-        simple_type_info = cls.get_simple_type_info(cls,
+        simple_type_info = cls.get_simple_type_info_ascii(cls,
                                                      hier_delim=self.hier_delim)
 
         logger.debug("Simple type info key: %r", simple_type_info.keys())
 
         idxmap = defaultdict(dict)
         for orig_k, v in sorted(doc.items(), key=lambda _k: _k[0]):
-            k = RE_HTTP_ARRAY_INDEX.sub("", orig_k)
+            k = RE_HTTP_ARRAY_INDEX.sub(b"", orig_k)
 
             member = simple_type_info.get(k, None)
             if member is None:
